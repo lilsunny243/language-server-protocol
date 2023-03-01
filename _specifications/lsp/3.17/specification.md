@@ -187,7 +187,7 @@ interface ResponseMessage extends Message {
 	 * The result of a request. This member is REQUIRED on success.
 	 * This member MUST NOT exist if there was an error invoking the method.
 	 */
-	result?: string | number | boolean | object | null;
+	result?: string | number | boolean | array | object | null;
 
 	/**
 	 * The error object in case a request fails.
@@ -358,7 +358,7 @@ A request that got canceled still needs to return from the server and send a res
 
 > *Since version 3.15.0*
 
-The base protocol offers also support to report progress in a generic fashion. This mechanism can be used to report any kind of progress including work done progress (usually used to report progress in the user interface using a progress bar) and partial result progress to support streaming of results.
+The base protocol offers also support to report progress in a generic fashion. This mechanism can be used to report any kind of progress including [work done progress](#workDoneProgress) (usually used to report progress in the user interface using a progress bar) and partial result progress to support streaming of results.
 
 A progress notification has the following properties:
 
@@ -423,23 +423,23 @@ The set of capabilities is exchanged between the client and server during the [i
 
 Responses to requests should be sent in roughly the same order as the requests appear on the server or client side. So for example if a server receives a `textDocument/completion` request and then a `textDocument/signatureHelp` request it will usually first return the response for the `textDocument/completion` and then the response for `textDocument/signatureHelp`.
 
-However, the server may decide to use a parallel execution strategy and may wish to return responses in a different order than the requests were received. The server may do so as long as this reordering doesn't affect the correctness of the responses. For example, reordering the result of `textDocument/completion` and `textDocument/signatureHelp` is allowed, as these each of these requests usually won't affect the output of the other. On the other hand, the server most likely should not reorder `textDocument/definition` and `textDocument/rename` requests, since the executing the latter may affect the result of the former.
+However, the server may decide to use a parallel execution strategy and may wish to return responses in a different order than the requests were received. The server may do so as long as this reordering doesn't affect the correctness of the responses. For example, reordering the result of `textDocument/completion` and `textDocument/signatureHelp` is allowed, as each of these requests usually won't affect the output of the other. On the other hand, the server most likely should not reorder `textDocument/definition` and `textDocument/rename` requests, since executing the latter may affect the result of the former.
 
 ### <a href="#messageDocumentation" name= "messageDocumentation" class="anchor"> Message Documentation </a>
 
-As said LSP defines a set of requests, responses and notifications. Each of those are document using the following format:
+As said LSP defines a set of requests, responses and notifications. Each of those are documented using the following format:
 
 * a header describing the request
 * an optional _Client capability_ section describing the client capability of the request. This includes the client capabilities property path and JSON structure.
 * an optional _Server Capability_ section describing the server capability of the request. This includes the server capabilities property path and JSON structure. Clients should ignore server capabilities they don't understand (e.g. the initialize request shouldn't fail in this case).
 * an optional _Registration Options_ section describing the registration option if the request or notification supports dynamic capability registration. See the [register](#client_registerCapability) and [unregister](#client_unregisterCapability) request for how this works in detail.
-* a _Request_ section describing the format of the request sent. The method is a string identifying the request the params are documented using a TypeScript interface. It is also documented whether the request supports work done progress and partial result progress.
+* a _Request_ section describing the format of the request sent. The method is a string identifying the request, the params are documented using a TypeScript interface. It is also documented whether the request supports work done progress and partial result progress.
 * a _Response_ section describing the format of the response. The result item describes the returned data in case of a success. The optional partial result item describes the returned data of a partial result notification. The error.data describes the returned data in case of an error. Please remember that in case of a failure the response already contains an error.code and an error.message field. These fields are only specified if the protocol forces the use of certain error codes or messages. In cases where the server can decide on these values freely they aren't listed here.
 
 
 ### <a href="#basicJsonStructures" name="basicJsonStructures" class="anchor"> Basic JSON Structures </a>
 
-There are quite some JSON structures that are shared between different requests and notifications. Their structure and capabilities are document in this section.
+There are quite some JSON structures that are shared between different requests and notifications. Their structure and capabilities are documented in this section.
 
 {% include_relative types/uri.md %}
 {% include_relative types/regexp.md %}
@@ -523,6 +523,8 @@ export namespace TextDocumentSyncKind {
 	 */
 	export const Incremental = 2;
 }
+
+export type TextDocumentSyncKind = 0 | 1 | 2;
 ```
 
 <div class="anchorHolder"><a href="#textDocumentSyncOptions" name="textDocumentSyncOptions" class="linkableAnchor"></a></div>
@@ -583,36 +585,6 @@ export interface TextDocumentSyncClientCapabilities {
 }
 ```
 
-<div class="anchorHolder"><a href="#textDocumentSyncKind" name="textDocumentSyncKind" class="linkableAnchor"></a></div>
-
-```typescript
-/**
- * Defines how the host (editor) should sync document changes to the language
- * server.
- */
-export namespace TextDocumentSyncKind {
-	/**
-	 * Documents should not be synced at all.
-	 */
-	export const None = 0;
-
-	/**
-	 * Documents are synced by always sending the full content
-	 * of the document.
-	 */
-	export const Full = 1;
-
-	/**
-	 * Documents are synced by sending the full content on open.
-	 * After that only incremental updates to the document are
-	 * send.
-	 */
-	export const Incremental = 2;
-}
-
-export type TextDocumentSyncKind = 0 | 1 | 2;
-```
-
 <div class="anchorHolder"><a href="#textDocumentSyncOptions" name="textDocumentSyncOptions" class="linkableAnchor"></a></div>
 
 ```typescript
@@ -651,7 +623,7 @@ export interface TextDocumentSyncOptions {
 
 ### <a href="#languageFeatures" name="languageFeatures" class="anchor">Language Features</a>
 
-Language Feature provide the actual smarts in the language server protocol. The are usually executed on a [text document, position] tuple. The main language feature categories are:
+Language Features provide the actual smarts in the language server protocol. They are usually executed on a [text document, position] tuple. The main language feature categories are:
 
 - code comprehension features like Hover or Goto Definition.
 - coding features like diagnostics, code complete or code actions.
@@ -718,7 +690,7 @@ Language Feature provide the actual smarts in the language server protocol. The 
 
 #### <a href="#implementationConsiderations" name="implementationConsiderations" class="anchor">Implementation Considerations</a>
 
-Language servers usually run in a separate process and client communicate with them in an asynchronous fashion. Additionally clients usually allow users to interact with the source code even if request results are pending. We recommend the following implementation pattern to avoid that clients apply outdated response results:
+Language servers usually run in a separate process and clients communicate with them in an asynchronous fashion. Additionally clients usually allow users to interact with the source code even if request results are pending. We recommend the following implementation pattern to avoid that clients apply outdated response results:
 
 - if a client sends a request to the server and the client state changes in a way that it invalidates the response it should do the following:
   - cancel the server request and ignore the result if the result is not useful for the client anymore. If necessary the client should resend the request.
@@ -732,9 +704,9 @@ Servers usually support different communication channels (e.g. stdio, pipes, ...
 - **stdio**: uses stdio as the communication channel.
 - **pipe**: use pipes (Windows) or socket files (Linux, Mac) as the communication channel. The pipe / socket file name is passed as the next arg or with `--pipe=`.
 - **socket**: uses a socket as the communication channel. The port is passed as next arg or with `--port=`.
-- **node-ipc**: use node IPC communication between the client and the server. This is only support if both client and server run under node.
+- **node-ipc**: use node IPC communication between the client and the server. This is only supported if both client and server run under node.
 
-To support the case that the editor starting a server crashes an editor should also pass its process id to the server. This allows the server to monitor the editor process and to shutdown itself if the editor process dies. The process id pass on the command line should be the same as the one passed in the initialize parameters. The command line argument to use is `--clientProcessId`.
+To support the case that the editor starting a server crashes an editor should also pass its process id to the server. This allows the server to monitor the editor process and to shutdown itself if the editor process dies. The process id passed on the command line should be the same as the one passed in the initialize parameters. The command line argument to use is `--clientProcessId`.
 
 #### <a href="#metaModel" name="metaModel" class="anchor">Meta Model</a>
 
@@ -760,7 +732,6 @@ Since 3.17 there is a meta model describing the LSP protocol:
   - server cancelable
   - augmentation of syntax tokens
 * Add support to negotiate the position encoding.
-* Add support for HTML tags in markdown.
 * Add support for relative patterns in file watchers.
 * Add support for type hierarchies
 * Add support for inline values.

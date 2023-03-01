@@ -182,16 +182,17 @@ _Server Capability_:
  */
 export interface CompletionOptions extends WorkDoneProgressOptions {
 	/**
-	 * Most tools trigger completion request automatically without explicitly
+	 * The additional characters, beyond the defaults provided by the client (typically
+	 * [a-zA-Z]), that should automatically trigger a completion request. For example
+	 * `.` in JavaScript represents the beginning of an object property or method and is
+	 * thus a good candidate for triggering a completion request.
+	 *
+	 * Most tools trigger a completion request automatically without explicitly
 	 * requesting it using a keyboard shortcut (e.g. Ctrl+Space). Typically they
 	 * do so when the user starts to type an identifier. For example if the user
 	 * types `c` in a JavaScript file code complete will automatically pop up
 	 * present `console` besides others as a completion item. Characters that
 	 * make up identifiers don't need to be listed here.
-	 *
-	 * If code complete should automatically be trigger on characters not being
-	 * valid inside an identifier (for example `.` in JavaScript) list them in
-	 * `triggerCharacters`.
 	 */
 	triggerCharacters?: string[];
 
@@ -592,21 +593,21 @@ export interface CompletionItem {
 
 	/**
 	 * A string that should be used when comparing this item
-	 * with other items. When `falsy` the label is used
+	 * with other items. When omitted the label is used
 	 * as the sort text for this item.
 	 */
 	sortText?: string;
 
 	/**
 	 * A string that should be used when filtering a set of
-	 * completion items. When `falsy` the label is used as the
+	 * completion items. When omitted the label is used as the
 	 * filter text for this item.
 	 */
 	filterText?: string;
 
 	/**
 	 * A string that should be inserted into a document when selecting
-	 * this completion. When `falsy` the label is used as the insert text
+	 * this completion. When omitted the label is used as the insert text
 	 * for this item.
 	 *
 	 * The `insertText` is subject to interpretation by the client side.
